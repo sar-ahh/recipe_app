@@ -6,15 +6,25 @@ Features:
 2. View the user's current list of ingredients.
 3. View all available recipes.
 4. Display recipes that the user can make with their current ingredients.
-5  View Recipes by dietary preferences
+5. View recipes by dietary preference
 6. Exit the application.
+
+ingredient_list is loaded with cheese, eggs, milk, and apples to demonstrate reading of an already existing file. File will be updated by the app and can be deleted to demonstrate creating a new file when none exists
+
+TO SAVE YOU HAVE TO EXIT THE APP (option 6)!
 """
+
+# will hold all user submitted ingredients, by default this is empty.
+user_ingredients: list[str] = []
+
+# this will hold all our recipes and incredients, allowing for saving and changing after the app is closed
+recipes: list["Recipe"] = []
+
 
 # Recipe class in order to sort by various dietary restirctions or personal prefernces for the user.
 class Recipe: 
     def __init__(self, name, ingredients):
         self.name = name
-
         self.ingredients = ingredients
     
         self.contains_dairy = any(
@@ -25,106 +35,193 @@ class Recipe:
         )
         self.vegetarian = "meat" not in ingredients
 
-# this acts as our "database" of recipes, with the recipe name represented as the key and a list of required ingredients as the value
-# converted from dictionary in order to sort recipes into different classes to differentiate by dietary restrictions. 
-recipes = [
-    Recipe("omelette", ["eggs", "milk", "cheese"]),
-    Recipe("PB&J", ["bread", "peanut butter", "jelly"]),
-    Recipe("toast", ["bread", "butter"]),
-    Recipe("mac and cheese", ["noodles", "cheese", "milk"]),
-    Recipe("salad", ["lettuce", "tomatoes", "cucumbers", "dressing"]),
-    Recipe("smoothie", ["fruit", "yogurt", "milk"]),
-    Recipe("pasta", ["noodles", "sauce", "cheese"]),
-    Recipe("grilled cheese", ["bread", "cheese", "butter"]),
-    Recipe("tacos", ["tortillas", "meat", "cheese", "lettuce", "salsa"]),
-    Recipe("pizza", ["dough", "sauce", "cheese"]),
-    Recipe("soup", ["broth", "vegetables", "meat"]),
-    Recipe("stir fry", ["vegetables", "meat", "sauce"]),
-    Recipe("curry", ["meat", "vegetables", "curry sauce"]),
-    Recipe("sandwich", ["bread", "meat", "cheese", "lettuce", "tomatoes"]),
-    Recipe("burrito", ["tortilla", "meat", "rice", "beans", "cheese", "salsa"]),
-    Recipe("pancakes", ["flour", "milk", "eggs", "syrup"]),
-    Recipe("waffles", ["flour", "milk", "eggs", "syrup"]),
-    Recipe("quiche", ["eggs", "milk", "cheese", "vegetables"]),
-    Recipe("frittata", ["eggs", "milk", "cheese", "vegetables"]),
-    Recipe("casserole", ["meat", "vegetables", "cheese", "sauce"]),
-    Recipe("lasagna", ["noodles", "meat", "sauce", "cheese"]),
-    Recipe("chili", ["meat", "beans", "tomatoes", "spices"]),
-]
 
-# will hold all user submitted ingredients, by default this is empty.
-user_ingredients: list[str] = []
+def get_recipes_from_file(filename: str) -> None: 
+    """
+    Loads recipe file and saves into recipe variable
+    """
+    file = open(filename, "r")
+    lines = file.readlines()
+    file.close()
+    # for line in lines[1:]:  # skip header
+    for line in lines:
+        parts = line.strip().split(",")
+        name = parts[0]
+        ingredients = [i for i in parts[1:] if i != ""]
 
-# Main loop to interact with the user, and at the current development state the rest of the applications functionality. Looping indefinitely here is fine due to the 5th option breaking out of the loop and exiting the program entirely.
-while True:
-    # read_recipe_csv()  # this function is currently a placeholder for future development, it will be used to read in recipes from a csv file and populate our recipes dictionary, but for now it does nothing and is just here to show where that functionality will be added in the future.
-    # add_new_recipe() # save new thing to recipe.csv
 
-    # make assumptions about how refactor will go
-    # assume csv is returned as standard
-    # remove and possibly updating existing
 
-    print("\n1. Add an ingredient")
+def save_ingredients_to_file(filename: str) -> None:
+    """
+    Saves the user's list of ingredients to a separate file using after the app is closed
+    """
+    file = open(filename, "w")
+    for ingredient in user_ingredients:
+        file.write(f"{ingredient} \n")
+        print(f"{ingredient} saved to file.")
+    file.close()
+
+
+def load_ingredient_list(filename: str) -> None:
+    """
+    Loads the user's list of ingredients from a separate file when the app is opened, allowing them to continue where they left off     Demonstrating the use of a try to show an error if a file does not exist
+    """
+    try:
+        file = open(filename, "r")
+        lines = file.readlines()
+        file.close()
+        for line in lines:
+            ingredient = line.strip()
+            if ingredient and ingredient not in user_ingredients:
+                user_ingredients.append(ingredient)
+                print(f"{ingredient} loaded from file.")
+    except FileNotFoundError:
+        print("No saved ingredient list found. Starting with an empty list.")
+
+
+def display_menu() -> None:
+    """
+    Displays the main menu and prompts the user for a choice.
+    """
+    print("1. Add an ingredient")
     print("2. View my ingredients")
     print("3. View all available recipes")
     print("4. Display recipes I can make")
     print("5. View recipes by dietary preference")
     print("6. Exit")
 
-    user_input: str = input("\n Choose an option: (1-6)")
 
-    if user_input == "1":
-        print("\nEnter ingredients one by one (type 'done' when finished):")
+def get_user_choice() -> str:
+    """
+    Prompts the user for a menu choice then returns that choice (if valid) as a string value.
 
-        # loop below takes in the user input and converts it to lowercase while also removing any trailing or leading white space, text passed to input is purely cosmetic
-        # We use an infinite loop here so that the user may input multiple ingredients without returning to the main menu. Checking for the string "done" allows the user to control when they are finished. Otherwise the new string is added to the users list of ingredients, unless it already exists, which the last portion of the conditional will check for
-        # Functions learned outsite of class: lower(), strip(). Used to take user input and set it to lowercase and remove any leading or trailing whitespace to ensure consistency in the ingredient list and avoid bugs as we check what is submitted.
-        # keywords learned outside of class: break, not, and, in. User for control flow and deciding what to do with user_input
-        #
-        while True:
-            item = input(">>> ").lower().strip()
-            if item == "done":
+    try is used to test if the input is a valid number between 1 and 5, if it is not we show a Value error and print out the issue, and return "error" which our app will check for to decide if it should run the function again
+    """
+    try:
+        choice = int(input("\nChoose an option: (1-6) "))
+        if 1 <= choice <= 6:
+            return str(choice)
+        else:
+            print("Invalid choice. Please enter a number between 1 and 6.")
+            return "error"
+    except ValueError:
+        print("Invalid input. Please enter a number between 1 and 6.")
+        return "error"
+
+
+def add_ingredient(filename: str) -> None:
+    """loop below takes in the user input and converts it to lowercase while also removing any trailing or leading white space, text passed to input is purely cosmetic
+
+    We use an infinite loop here so that the user may input multiple ingredients without returning to the main menu. Checking for the string "done" allows the user to control when they are finished. Otherwise the new string is added to the users list of ingredients, unless it already exists, which the last portion of the conditional will check for
+
+    Functions learned outsite of class: lower(), strip(). Used to take user input and set it to lowercase and remove any leading or trailing whitespace to ensure consistency in the ingredient list and avoid bugs as we check what is submitted.
+    keywords learned outside of class: break, not, and, in. User for control flow and deciding what to do with user_input
+
+    Concept learned outside of class: calling a function from another function
+    """
+    print("\nEnter ingredients one by one (type 'done' when finished):")
+
+    try:
+        file = open(filename, "r")
+        lines = file.readlines()
+        file.close()
+        for line in lines:
+            ingredient = line.strip()
+            if ingredient and ingredient not in user_ingredients:
+                user_ingredients.append(ingredient)
+    except FileNotFoundError:
+        print("No saved ingredient list found. Starting with an empty list.")
+
+    while True:
+        item = input(">>> ").lower().strip()
+        if item == "done":
+            break
+        elif item and item not in user_ingredients:
+            user_ingredients.append(item)
+        elif item in user_ingredients:
+            print(f"{item} is already in your ingredient list.")
+        else:
+            print("Please enter a valid ingredient or type 'done' to finish.")
+
+
+def show_user_ingredients() -> None:
+    print("\nMy Ingredients:")
+    for ingredient in user_ingredients:
+        print(f"- {ingredient}")
+
+
+def show_available_recipes() -> None:
+    """
+    prints all the recipes available in our recipe dictionary, which are the keys of the dictionary
+    """
+    print("\nAvailable Recipes:")
+    for recipe in recipes:
+        print(f"- {recipe.name}")
+
+
+def show_possible_recipes() -> None:
+    """
+    Shows all recipes that the user can create given the list of ingredients they have added
+    """
+    print("\nPossible Recipes with your ingredients:")
+    for recipe in recipes:
+        has_all_ingredients = True
+
+        for ingredient in recipe.ingredients:
+            if ingredient not in user_ingredients:
+                has_all_ingredients = False
                 break
-            elif item and item not in user_ingredients:
-                user_ingredients.append(item)
-            elif item in user_ingredients:
-                print(f"{item} is already in your ingredient list.")
-            else:
-                print("Please enter a valid ingredient or type 'done' to finish.")
 
-    elif user_input == "2":
-        print("\nMy Ingredients:")
-        if not user_ingredients:
-            print("- (none)")
-        for ingredient in user_ingredients:
-            print(f"- {ingredient}")
-
-    # conditional below will iterate through our recipe dictionary and print out each key, which will be the name of the recipe
-    # Functions learned outside of class: keys(). Returns a set containing all keys in a dictionary, which in our case are recipe names
-    # Updated to work with new classes
-    elif user_input == "3":
-        print("\nAvailable Recipes:")
-        for recipe in recipes:
+        if has_all_ingredients:
             print(f"- {recipe.name}")
 
-    # conditional below will iterate through our recipe dictionary and check if all the ingredients required for a recipe are present in the user's ingredient list. If they are, it will print out the name of the recipe as a possible option for the user to make with their current ingredients.
-    # Functions learned outside of class: items(). Used on a dictionary to return a tuple of key-value pairs, which we use to check each recipe and it's ingredients against the user's list of ingredients.'
-    # Concepts learned outside of class: Nested loops. Unpacking (mentioned briefly in class when taught about tuples, can be used here due to items() returning a tuple of key-value pairs)
+
+def save_users_new_ingredients(filename: str) -> None:
+    """
+    Saves the user's new list of ingredients to a separate file using after the app is closed, allowing them to continue where they left off when they open the app again
+    """
+    file = open(filename, "w")
+    for ingredient in user_ingredients:
+        file.write(f"{ingredient} \n")
+        print(f"{ingredient} saved to file.")
+    file.close()
+
+
+def load_recipes_and_ingredients(recipes_filename: str, ingredients_filename: str) -> None:
+    """
+    Loads the recipes and ingredients from their respective files when the app is opened, allowing them to continue where they left off
+
+    We can use 2 functions we already wrote at the same time by calling this, which lets us use this at the beginning of the app to make sure we have all the data needed
+    """
+    get_recipes_from_file(recipes_filename)
+    load_ingredient_list(ingredients_filename)
+
+
+def main() -> None:
+    """
+    Main loop to interact with the user
+    
+    Calls functions to load our data from files into variables -> displays the menu -> gets user input -> calls a different function depending on the users input -> saves the users new ingredients into a file when they choose the option to exit before exiting
+
+    """
+    display_menu()
+
+    user_input: str = get_user_choice()
+
+    if user_input == "error":
+        user_input = get_user_choice()
+
+    if user_input == "1":
+        add_ingredient("ingredient_list.txt")
+
+    elif user_input == "2":
+        show_user_ingredients()
+
+    elif user_input == "3":
+        show_available_recipes()
+
     elif user_input == "4":
-        print("\nPossible Recipes with your ingredients:")
-
-        for recipe in recipes:
-            has_all_ingredients = True  # this will be our flag to determine if a users ingredients already exists
-
-            # if the ingredient does not exist in the user_ingredients list, we will set our has_all_ingredients flag to false and leave the loops
-            for ingredient in recipe.ingredients:
-                if ingredient not in user_ingredients:
-                    has_all_ingredients = False
-                    break
-
-            # if flag is not changed to false, we print the recipe
-            if has_all_ingredients:
-                print(f"- {recipe.name}")
+        show_possible_recipes()
 
     elif user_input == "5":
         print("\nDietary Options:")
@@ -134,7 +231,7 @@ while True:
         print("4. Exit")
 
         choice = input("Choose an option (1-4): ")
-#this is where users run thorugh dietary options that they can view recipes of 
+
         if choice == "1":
             print("\nRecipes with dairy:")
             for recipe in recipes:
@@ -154,12 +251,15 @@ while True:
                     print(f"- {recipe.name}")
 
         elif choice == "4":
-            continue
+            return
 
     elif user_input == "6":
         print("Goodbye!")
-        break
+        save_users_new_ingredients("ingredient_list.txt"
+        )  # this will save the users new ingredients to a text file so that they can be loaded again when the app is opened again
+        exit()  # newly learned python function that is replacing our "break" from project 1 to exit the program if this option is chosen
 
 
-def read_recipe_csv():
-    pass
+if __name__ == "__main__":
+    while True:
+        main()
